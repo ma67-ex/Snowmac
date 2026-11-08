@@ -6,10 +6,10 @@ let flakesPerSecond: CGFloat = 28     // flakes per second at full snowfall
 /// Seconds for everything to build up (snowfall, pile, window caps). FLURRY_GROW overrides it for testing.
 let flurryGrow = Double(env["FLURRY_GROW"] ?? "") ?? 300
 
-/// The snowplough, drawn in code to match a reference photo of an orange dump-truck plough (side view, facing right):
-/// grey salt load under a snow crest, orange dump bed with a tilted hydraulic arm, silver exhaust stack, orange cab with
-/// dark glass, amber lights, tandem rear wheels, and a dark front plough blade. Coordinates below are in the reference
-/// photo's pixels (680 x 336, y down); `X`/`Y` map them into the sprite (140 x 64 pt, y up, wheels on y = 0).
+/// The snowplough, drawn entirely in code (side view, facing right): grey salt load under a snow crest, orange dump bed with a
+/// tilted hydraulic arm, silver exhaust stack, orange cab with dark glass, amber lights, tandem rear wheels, and a dark front
+/// plough blade. Coordinates below are design units (680 x 336, y down); `X`/`Y` map them into the sprite (140 x 64 pt, y up,
+/// wheels on y = 0).
 func truckImage() -> CGImage? {
     let sc: CGFloat = 4, W: CGFloat = 140, H: CGFloat = 64, k: CGFloat = 0.21875
     guard let ctx = CGContext(data: nil, width: Int(W * sc), height: Int(H * sc), bitsPerComponent: 8, bytesPerRow: 0,
@@ -304,7 +304,7 @@ final class Ground {
     // plough
     private let plowEvery = CGFloat(Double(env["FLURRY_PLOW"] ?? "") ?? 10)   // seconds between passes
     private let keep: CGFloat = 0.5                                           // share of snow left after a pass
-    private let truckSpeed: CGFloat = 200, bladeX: CGFloat = 137   // blade tip, from the reference
+    private let truckSpeed: CGFloat = 200, bladeX: CGFloat = 137   // blade tip
     private var wait: CGFloat = 0, frame = 0
 
     init(screen: NSScreen) {

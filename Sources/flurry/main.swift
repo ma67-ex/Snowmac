@@ -1,5 +1,5 @@
 // Flurry: weather on your desktop. Menu-bar app, click-through overlay per screen.
-// Original code, MIT licensed. Not affiliated with any commercial app.
+// MIT licensed.
 import AppKit
 import QuartzCore
 

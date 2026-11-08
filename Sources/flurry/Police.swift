@@ -9,7 +9,7 @@ protocol Vehicle: AnyObject {
 extension Truck: Vehicle {}
 
 /// A white police SUV with a blue stripe and a flashing red and blue light bar, facing right (side view, wheels on y = 0).
-/// Drawn in code to match a reference picture of a police SUV.
+/// Drawn entirely in code.
 func policeImage() -> CGImage? {
     let sc: CGFloat = 4, W: CGFloat = 96, H: CGFloat = 44
     guard let ctx = CGContext(data: nil, width: Int(W * sc), height: Int(H * sc), bitsPerComponent: 8, bytesPerRow: 0,

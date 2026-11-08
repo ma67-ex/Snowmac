@@ -30,7 +30,6 @@ The app is signed ad hoc. If macOS refuses to open it, right-click it, choose Op
 
 - All artwork (flakes, trucks, police SUV, kids, icon) is drawn in code. There are no image files except the app icon.
 - The debug build has some development hooks (environment variables starting with `FLURRY_`) used for testing. They are compiled out of the release build.
-- Not affiliated with any other app.
 
 ## License
 
