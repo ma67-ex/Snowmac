@@ -136,7 +136,9 @@ final class Fight {
         if living.count == 1, k.alive, k.state != .run, k.state != .pop { k.state = .run; k.t = 0; debug("last kid runs away") }
         // face the target (or whoever is nearest)
         if k.alive, k.state != .run {
-            if k.target == nil || !(k.target!.alive) { k.target = living.filter { $0 !== k }.randomElement() }
+            // Throws go down, across, or up at an angle from the side. Never straight up at someone standing right above.
+            if let t = k.target, !canThrow(k, t) { k.target = nil }
+            if k.target == nil { k.target = living.filter { $0 !== k && canThrow(k, $0) }.randomElement() }
             if let tg = k.target { k.dir = tg.x >= k.x ? 1 : -1 }
         }
         switch k.state {
@@ -193,25 +195,29 @@ final class Fight {
 
     /// Throw a snowball at the target's head, solved so it arrives on time. In the play phase the target may see it coming
     /// and sidestep out of the way; once the fight is in its last phase nobody dodges.
+    /// Anyone can throw at anyone, however high, so the game stays fair. The only rule: not straight up, so the thrower must stand off to the side.
+    private func canThrow(_ k: Brawler, _ t: Brawler) -> Bool {
+        guard t.alive, t !== k else { return false }
+        let rise = t.yPos - k.yPos
+        return rise <= 40 || abs(t.x - k.x) >= 70
+    }
+
     private func launch(from k: Brawler, _ g: Ground, _ surface: CGFloat) {
-        guard let tg = k.target, tg.alive else { return }
+        guard let tg = k.target, tg.alive, canThrow(k, tg) else { return }
         let tsurf = tg.yPos
         let hx = k.x + k.dir * 20, hy = surface + 50
         let tx = tg.x, ty = tsurf + 36
-        let dist = abs(tx - hx), T = max(0.5, min(1.05, dist / 650))
-        var vx = (tx - hx) / T, vy = (ty - hy + 0.5 * gravity * T * T) / T
-        // Windows, tabs and widgets are buildings seen from the side. Kids on the same level throw over the top, in an arc. Kids on
-        // different levels (one on a building, one below) can only throw sideways: flat, never up at it and never down at it.
-        let differentLevel = abs(tg.yPos - k.yPos) > 40
-        if differentLevel { vx = k.dir * 650; vy = 110 }
-        debug(differentLevel ? "throw: sideways (other level)" : "throw: arc over the top (same level)")
+        let dist = abs(tx - hx), rise = max(0, tg.yPos - k.yPos)
+        let T = rise > 40 ? min(2.2, max(0.8, 0.55 + rise / 400)) : max(0.5, min(1.05, dist / 650))   // up throws take longer: a higher arc clears the building's edge
+        let vx = (tx - hx) / T, vy = (ty - hy + 0.5 * gravity * T * T) / T      // always an arc that lands on the target's head
+        debug(rise > 40 ? "throw: arc up from the side" : tg.yPos < k.yPos - 40 ? "throw: arc down to a lower level" : "throw: arc on the same level")
         let l = CALayer(); l.bounds = CGRect(x: 0, y: 0, width: 14, height: 14); l.cornerRadius = 7
         l.contents = snowballImage(px: 56); l.contentsScale = 4
         container.addSublayer(l)
         var inside = Set<Int>()                                   // buildings the throw starts inside (a window over the ground strip)
         for s in liveCaps.surfaces where s.rect.offsetBy(dx: -g.screenFrame.minX, dy: -g.screenFrame.minY).contains(CGPoint(x: hx, y: hy)) { inside.insert(s.id) }
         balls.append(Ball(layer: l, x: hx, y: hy, vx: vx, vy: vy, thrower: k, age: 0, ignore: inside))
-        if !differentLevel, phase == .play, tg.dodgeIn == nil, tg.alive, Float.random(in: 0...1) < (kids.filter { $0.alive }.count <= 2 ? 1.0 : 0.82) {   // it saw that coming (always, once only two are left, so they keep playing)
+        if phase == .play, tg.dodgeIn == nil, tg.alive, Float.random(in: 0...1) < (kids.filter { $0.alive }.count <= 2 ? 1.0 : 0.82) {   // it saw that coming (always, once only two are left, so they keep playing)
             tg.dodgeIn = max(0.05, T - 0.4); tg.dodgeDX = (tx >= hx ? 1 : -1) * CGFloat.random(in: 50...70)
             let (blo, bhi) = xBounds(tg, g)
             if tg.x + tg.dodgeDX < blo || tg.x + tg.dodgeDX > bhi { tg.dodgeDX = -tg.dodgeDX }
@@ -227,7 +233,6 @@ final class Fight {
             var done = false
             for k in kids where (k.alive && k !== b.thrower || (k === b.thrower && b.age > 0.35 && k.alive)) && k.state != .carried && k.state != .fall {
                 let ks = k.yPos
-                if let th = b.thrower, abs(th.yPos - ks) > 40 { continue }                  // a ball never hits a kid on another level
                 if phase == .play && kids.filter({ $0.alive }).count <= 2 { continue }       // still playing: the last two cannot be hit yet
                 if hypot(b.x - (k.x + k.dx), b.y - (ks + 34)) < 15 {                    // a hit!
                     k.state = .hit; k.t = 0; k.dir = (b.vx >= 0) ? -1 : 1; k.dodgeIn = nil
